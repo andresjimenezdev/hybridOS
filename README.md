@@ -83,6 +83,10 @@ Tras crear la cuenta inicial desde `/login`, se recomienda desactivar nuevos reg
 
 Los ejercicios se resuelven primero por `exercise_key` y después por nombre normalizado único. Lo desconocido/ambiguo queda `needs_review`; nunca se crea un duplicado silencioso. Un plan completado es inmutable. Un cambio durante una sesión activa requiere aceptar o rechazar y nunca modifica series ya completadas.
 
+## Apple Health Bridge
+
+La integración sin coste usa un Atajo personal de iOS que envía resúmenes diarios validados a un endpoint privado. Supabase sigue siendo la fuente de verdad y los reenvíos son idempotentes. Consulta la configuración y el contrato en [docs/apple-health-shortcut.md](docs/apple-health-shortcut.md).
+
 ## Migración del Sheet legado
 
 Primero ejecutar dry-run:
