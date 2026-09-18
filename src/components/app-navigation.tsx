@@ -13,13 +13,13 @@ const items = [
 export function AppNavigation() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Navegación principal" className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line)] bg-[color:var(--surface)] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:bottom-auto md:left-6 md:right-auto md:top-1/2 md:-translate-y-1/2 md:rounded-3xl md:border">
-      <div className="mx-auto grid max-w-lg grid-cols-4 md:flex md:flex-col md:p-2">
+    <nav aria-label="Navegación principal" className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 mx-auto max-w-md rounded-[1.75rem] bg-[#11110f] p-2 shadow-[0_18px_55px_rgba(0,0,0,0.28)] md:bottom-auto md:left-5 md:right-auto md:top-1/2 md:m-0 md:max-w-none md:-translate-y-1/2">
+      <div className="grid grid-cols-4 md:flex md:flex-col">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link aria-current={active ? "page" : undefined}
-              className={`flex min-h-16 flex-col items-center justify-center gap-1 px-2 text-[0.68rem] font-medium transition-colors md:min-h-14 md:w-16 ${active ? "text-[var(--foreground)]" : "text-[var(--muted)]"}`}
+              className={`relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-[1.35rem] px-2 text-[0.65rem] font-semibold transition-all md:min-h-14 md:w-16 ${active ? "bg-[var(--accent)] text-white shadow-[0_8px_24px_rgba(255,103,18,0.42)]" : "text-white/45 hover:text-white/80"}`}
               href={item.href} key={item.href}>
               <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24">
                 <path d={item.icon} />

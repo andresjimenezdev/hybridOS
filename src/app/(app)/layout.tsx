@@ -11,11 +11,11 @@ export default async function AuthenticatedLayout({ children }: Readonly<{ child
   if (!user) redirect("/login");
 
   return (
-    <div className="min-h-dvh pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-28">
-      <div className="mx-auto w-full max-w-5xl px-5 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))] sm:px-8">
-        <header className="mb-10 flex items-center justify-between">
-          <span className="text-sm font-semibold tracking-[-0.02em]">HybridOS</span>
-          <div className="flex items-center gap-4"><Link className="text-xs text-[var(--muted)]" href="/ajustes">Ajustes</Link><form action={signOut}><button className="text-xs text-[var(--muted)]" type="submit">Salir</button></form></div>
+    <div className="min-h-dvh pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-28">
+      <div className="mx-auto w-full max-w-5xl px-4 pb-10 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-8">
+        <header className="mb-8 flex items-center justify-between px-1">
+          <Link className="flex items-center gap-2 text-sm font-bold tracking-[-0.03em]" href="/hoy"><span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--foreground)] text-xs text-white">H</span>HybridOS</Link>
+          <div className="flex items-center gap-2"><Link aria-label="Ajustes" className="grid h-10 w-10 place-items-center rounded-full bg-[var(--surface)] text-[var(--muted)] shadow-sm" href="/ajustes"><span aria-hidden="true">•••</span></Link><form action={signOut}><button className="grid h-10 min-w-10 place-items-center rounded-full bg-[var(--surface)] px-3 text-xs text-[var(--muted)]" type="submit">Salir</button></form></div>
         </header>
         {children}
       </div>

@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f5f2;
-  --foreground: #171714;
-  --surface: rgba(255, 255, 255, 0.82);
-  --muted: #6f706a;
-  --line: rgba(23, 23, 20, 0.08);
-  --accent: #181815;
+  --background: #f5f1ed;
+  --foreground: #171511;
+  --surface: #fffefa;
+  --muted: #77716b;
+  --line: rgba(36, 28, 20, 0.075);
+  --accent: #ff7418;
   --accent-foreground: #ffffff;
   --success: #377a4a;
   --warning: #a46116;
@@ -24,11 +24,9 @@ html {
 body {
   min-height: 100dvh;
   margin: 0;
-  background:
-    radial-gradient(circle at 50% -10%, rgba(255, 255, 255, 0.96), transparent 42%),
-    var(--background);
+  background: radial-gradient(circle at 50% -8%, #fffdf9 0, transparent 38%), var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }
@@ -51,10 +49,18 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 
 @utility card {
   border: 1px solid var(--line);
-  border-radius: 1.5rem;
+  border-radius: 1.75rem;
   background: var(--surface);
-  box-shadow: 0 16px 50px rgba(20, 20, 16, 0.045);
-  backdrop-filter: blur(16px);
+  box-shadow: 0 18px 50px rgba(64, 42, 24, 0.055);
+}
+
+@utility hero-card {
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at 88% 16%, rgba(255, 255, 255, 0.38), transparent 22%),
+    linear-gradient(145deg, #ff8a2b 0%, #ff6812 62%, #f14e0b 100%);
+  color: white;
+  box-shadow: 0 22px 55px rgba(231, 91, 15, 0.24);
 }
 
 @utility primary-button {
@@ -69,8 +75,11 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   color: var(--accent-foreground);
   font-size: 0.875rem;
   font-weight: 650;
-  transition: transform 150ms ease, opacity 150ms ease;
+  box-shadow: 0 10px 25px rgba(255, 103, 18, 0.22);
+  transition: transform 150ms ease, opacity 150ms ease, box-shadow 150ms ease;
 }
+
+.primary-button:active { transform: scale(0.98); }
 
 @utility secondary-button {
   display: inline-flex;
@@ -112,8 +121,8 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
     --surface: rgba(28, 29, 26, 0.82);
     --muted: #a4a69d;
     --line: rgba(255, 255, 255, 0.1);
-    --accent: #f0f0eb;
-    --accent-foreground: #171714;
+    --accent: #ff7a1a;
+    --accent-foreground: #ffffff;
   }
   body { background: radial-gradient(circle at 50% -10%, rgba(65, 68, 58, 0.3), transparent 42%), var(--background); }
 }
