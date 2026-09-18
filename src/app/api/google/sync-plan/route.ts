@@ -21,6 +21,11 @@ export async function POST() {
     return NextResponse.json(summary, { status: summary.errors.length ? 207 : 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message.slice(0, 500) : "Plan sync failed";
+    console.error("[google/sync-plan] inbound sync failed", {
+      message,
+      userId: user.id,
+      attemptedAt,
+    });
     if (log) await supabase.from("sync_log").update({ status: "failed", completed_at: new Date().toISOString(), error_message: message, sync_error: message }).eq("id", log.id);
     return NextResponse.json({ error: "Plan sync unavailable" }, { status: 503 });
   }

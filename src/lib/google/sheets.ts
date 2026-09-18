@@ -50,7 +50,17 @@ async function googleFetch(path: string, init?: RequestInit) {
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...init?.headers },
     cache: "no-store",
   });
-  if (!response.ok) throw new Error(`Google Sheets request failed (${response.status}).`);
+  if (!response.ok) {
+    const responseText = await response.text();
+    let detail = "";
+    try {
+      const payload = JSON.parse(responseText) as { error?: { message?: string; status?: string } };
+      detail = payload.error?.message ?? payload.error?.status ?? "";
+    } catch {
+      detail = responseText.slice(0, 200);
+    }
+    throw new Error(`Google Sheets request failed (${response.status})${detail ? `: ${detail}` : "."}`);
+  }
   return response;
 }
 
