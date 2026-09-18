@@ -7,9 +7,10 @@ export const AI_PLAN_HEADERS = [
 ] as const;
 
 export const AI_DATA_HEADERS = [
-  "date", "activity_type", "session_key", "session_name", "exercise_name", "exercise_key",
-  "set_number", "weight_kg", "reps", "rir", "sensation", "pain", "notes", "distance_km",
-  "duration_seconds", "pace_seconds_km", "avg_hr", "max_hr", "rpe",
+  "result_id", "date", "completed_at", "activity_type", "session_key", "session_name",
+  "exercise_name", "exercise_key", "set_number", "weight_kg", "reps", "rir", "sensation",
+  "pain", "notes", "distance_km", "duration_seconds", "pace_seconds_km", "avg_hr", "max_hr",
+  "rpe", "talk_test",
 ] as const;
 
 export const AI_HEALTH_HEADERS = [
@@ -25,6 +26,7 @@ export const AI_WEEKLY_HEADERS = [
 ] as const;
 
 export type CanonicalRange = { min: number | null; max: number | null };
+export type ExerciseTarget = { kind: "reps" | "duration" | "empty"; min: number | null; max: number | null };
 export type ExerciseReference = { id: string; name: string; external_key: string | null };
 
 export type PlanRow = {
@@ -39,6 +41,7 @@ export type PlanRow = {
   exerciseKey: string;
   setsTarget: number | null;
   repsTarget: CanonicalRange;
+  durationTarget: CanonicalRange;
   rirTarget: CanonicalRange;
   restSeconds: number | null;
   durationTargetSeconds: number | null;
@@ -64,11 +67,37 @@ function numberOrNull(value: unknown) {
 }
 
 export function parseCanonicalRange(value: unknown): CanonicalRange {
-  const raw = text(value).replace(/[–—]/g, "-");
+  const raw = text(value).replace(/[–—]/g, "-").replace(/\s*(?:s|sec|secs|seg|segs|seconds|segundos)\s*$/i, "");
   if (!raw) return { min: null, max: null };
   const [first, second] = raw.split("-").map((part) => numberOrNull(part));
   if (first === null) return { min: null, max: null };
   return { min: first, max: second ?? first };
+}
+
+export function parseExerciseTarget(value: unknown): ExerciseTarget {
+  const raw = text(value);
+  if (!raw) return { kind: "empty", min: null, max: null };
+  const range = parseCanonicalRange(raw);
+  if (range.min === null) return { kind: "empty", min: null, max: null };
+  const duration = /(?:^|\s)(?:s|sec|secs|seg|segs|seconds|segundos)\s*$/i.test(raw);
+  return { kind: duration ? "duration" : "reps", ...range };
+}
+
+export function stableResultId(...parts: Array<string | number>) {
+  return parts.map((part) => normalizeExternalKey(String(part))).join(":");
+}
+
+export function planUpdateDecision(input: {
+  status: string | null;
+  active: boolean;
+  importStatus: string | null;
+  existingUpdatedAt: string | null;
+  incomingUpdatedAt: string | null;
+}) {
+  if (input.status === "completed") return "immutable" as const;
+  if (input.active || input.status === "in_progress") return "conflict" as const;
+  if (input.incomingUpdatedAt && input.existingUpdatedAt && input.incomingUpdatedAt <= input.existingUpdatedAt && input.importStatus === "ready") return "unchanged" as const;
+  return "apply" as const;
 }
 
 export function normalizeExternalKey(value: string) {
@@ -112,11 +141,14 @@ export function parsePlanRows(rows: unknown[][]): { rows: PlanRow[]; errors: str
       return [];
     }
     const updated = text(record.updated_at);
+    const exerciseTarget = parseExerciseTarget(record.reps_target);
     return [{
       planId: text(record.plan_id), weekStart: text(record.week_start), date, sessionKey,
       sessionType, sessionName, exerciseOrder: numberOrNull(record.exercise_order),
       exerciseName: text(record.exercise_name), exerciseKey: normalizeExternalKey(text(record.exercise_key)),
-      setsTarget: numberOrNull(record.sets_target), repsTarget: parseCanonicalRange(record.reps_target),
+      setsTarget: numberOrNull(record.sets_target),
+      repsTarget: exerciseTarget.kind === "reps" ? exerciseTarget : { min: null, max: null },
+      durationTarget: exerciseTarget.kind === "duration" ? exerciseTarget : { min: null, max: null },
       rirTarget: parseCanonicalRange(record.rir_target), restSeconds: numberOrNull(record.rest_seconds),
       durationTargetSeconds: numberOrNull(record.duration_target_seconds),
       distanceTargetKm: numberOrNull(record.distance_target_km),

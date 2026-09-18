@@ -22,3 +22,6 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# supabase local/link state
+/supabase/.temp

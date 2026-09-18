@@ -28,7 +28,7 @@ ChatGPT/Google Drive → AI_PLAN → HybridOS
 - Referencia anterior, descanso, recuperación y resumen postentreno.
 - Running y otros cardio, salud, peso, medidas e históricos básicos.
 - Progreso de fuerza, cardio y composición corporal.
-- Importación idempotente de `AI_PLAN` y exportación batch a `AI_DATA`, `AI_HEALTH` y `AI_WEEKLY`.
+- Importación idempotente de `AI_PLAN`, snapshots relacionales por sesión y exportación batch a `AI_DATA`, `AI_HEALTH` y `AI_WEEKLY`.
 - Importador inicial idempotente del Sheet legado.
 
 ## Desarrollo local

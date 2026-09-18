@@ -30,7 +30,7 @@ There is no OpenAI API, chatbot or LLM call inside HybridOS.
 | RIR / RPE | number or empty |
 | External IDs | stable lowercase keys, independent of Supabase UUIDs |
 
-Ranges use `min-max`, for example `6-8` reps or `2-3` RIR. A single number is interpreted as a closed range. UI labels such as `6:50/km` must be converted to `410` seconds/km before writing.
+Ranges use `min-max`, for example `6-8` reps or `2-3` RIR. A single number is interpreted as a closed range. Duration targets use an explicit suffix, for example `30-45 s`; they are stored as seconds and never converted into repetitions. UI labels such as `6:50/km` must be converted to `410` seconds/km before writing.
 
 ## AI_PLAN
 
@@ -73,7 +73,7 @@ AI_PLAN import never silently creates an unknown exercise. The user must resolve
 
 ### Updates and conflicts
 
-- `planned`: a newer `updated_at` updates the plan normally.
+- `planned`: a newer `updated_at` updates the plan and its `planned_session_exercises` snapshot normally.
 - `in_progress`: the new payload is held as `update_available`; the user explicitly accepts or rejects it.
 - `completed`: ignored by the importer; historical performance is immutable.
 - Re-importing identical `session_key` and `updated_at` values is a no-op.
@@ -84,12 +84,19 @@ AI_PLAN import never silently creates an unknown exercise. The user must resolve
 Read-only projection of performed training:
 
 ```text
-date, activity_type, session_key, session_name, exercise_name, exercise_key,
-set_number, weight_kg, reps, rir, sensation, pain, notes, distance_km,
-duration_seconds, pace_seconds_km, avg_hr, max_hr, rpe
+result_id, date, completed_at, activity_type, session_key, session_name,
+exercise_name, exercise_key, set_number, weight_kg, reps, rir, sensation,
+pain, notes, distance_km, duration_seconds, pace_seconds_km, avg_hr,
+max_hr, rpe, talk_test
 ```
 
-Strength exports one row per completed set. Cardio exports one row per performed session. Blank cells mean the metric is not applicable or was not recorded.
+Strength exports one row per completed set and uses `strength:<set-id>` as stable `result_id`. Cardio exports one row per performed session and uses `cardio:<session-id>`. A repeated full projection replaces the integration table, so stable results never duplicate. Blank cells mean the metric is not applicable or was not recorded; a missing value is never exported as zero.
+
+## Internal relational snapshot
+
+`workout_templates` remains the editable reusable definition. Each imported strength `planned_session` owns an immutable-at-start snapshot in `planned_session_exercises`. Starting a planned workout copies that snapshot into `strength_exercise_logs`; editing the template later cannot rewrite the plan instance or completed history. Repetitions and duration targets have separate numeric fields.
+
+During the initial migration only, unlinked legacy results may be reconciled by unique `date + type + name` for strength and unique `date + type` for cardio. Once linked, `planned_session_id` and `session_key` are the only relationship identifiers. No historical session is created by the planning import.
 
 ## AI_HEALTH
 
@@ -113,7 +120,7 @@ cardio_completed, running_sessions, running_km, running_minutes,
 average_weight_kg, latest_waist_cm, resting_hr_average, vo2max_latest
 ```
 
-Cancelled and skipped sessions are excluded from adherence denominators. No synthetic health, recovery or fitness scores are generated.
+Cancelled and skipped sessions are excluded from adherence denominators. Completion numerators come only from linked real `strength_sessions` and `cardio_sessions`, never from the incoming AI_PLAN status. Mobility is not cardio. No synthetic health, recovery or fitness scores are generated.
 
 ## Synchronization behaviour
 

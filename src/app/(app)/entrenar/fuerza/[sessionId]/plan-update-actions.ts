@@ -42,8 +42,10 @@ export async function acceptPlanUpdate(sessionId: string) {
     if (!exercise) { unresolved.push(row.exerciseKey || row.exerciseName); continue; }
     const targetSets = row.setsTarget ?? 1;
     const values = {
-      target_sets: targetSets, target_reps_min: row.repsTarget.min ?? 1,
-      target_reps_max: row.repsTarget.max ?? row.repsTarget.min ?? 1,
+      target_sets: targetSets, target_reps_min: row.repsTarget.min,
+      target_reps_max: row.repsTarget.max,
+      target_duration_min_seconds: row.durationTarget.min,
+      target_duration_max_seconds: row.durationTarget.max,
       target_rir: row.rirTarget.max, target_rir_min: row.rirTarget.min,
       target_rir_max: row.rirTarget.max, rest_seconds: row.restSeconds,
     };

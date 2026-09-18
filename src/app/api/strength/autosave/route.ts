@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 function finite(value: unknown, min: number, max: number) {
-  if (value === null || value === "") return null;
+  if (value === null || value === undefined || value === "") return null;
   const numberValue = Number(value);
   return Number.isFinite(numberValue) && numberValue >= min && numberValue <= max ? numberValue : undefined;
 }
@@ -21,12 +21,13 @@ export async function PATCH(request: Request) {
   if (payload.entity === "set") {
     const weight = finite(payload.weight_kg, 0, 1000);
     const reps = finite(payload.reps, 0, 500);
+    const durationSeconds = finite(payload.duration_seconds, 1, 3600);
     const rir = finite(payload.rir, 0, 10);
-    if (weight === undefined || reps === undefined || rir === undefined || typeof payload.completed !== "boolean") {
+    if (weight === undefined || reps === undefined || durationSeconds === undefined || rir === undefined || typeof payload.completed !== "boolean") {
       return NextResponse.json({ error: "Invalid set values" }, { status: 400 });
     }
     const { error } = await supabase.from("strength_sets").update({
-      weight_kg: weight, reps, rir, completed: payload.completed,
+      weight_kg: weight, reps, duration_seconds: durationSeconds, rir, completed: payload.completed,
     }).eq("id", id).eq("user_id", user.id);
     if (error) return NextResponse.json({ error: "Save failed" }, { status: 500 });
     return NextResponse.json({ saved: true });

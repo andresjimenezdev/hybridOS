@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 type CompletedSet = {
   weight_kg: number | null;
   reps: number | null;
+  duration_seconds: number | null;
   completed: boolean;
 };
 
@@ -22,7 +23,7 @@ export default async function StrengthSummaryPage({ params }: { params: Promise<
   const supabase = await createClient();
   const { data: session } = await supabase
     .from("strength_sessions")
-    .select("id,name,status,started_at,completed_at,duration_minutes,strength_exercise_logs(feeling,has_pain,exercises(name),strength_sets(weight_kg,reps,completed))")
+    .select("id,name,status,started_at,completed_at,duration_minutes,strength_exercise_logs(feeling,has_pain,exercises(name),strength_sets(weight_kg,reps,duration_seconds,completed))")
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -58,7 +59,7 @@ export default async function StrengthSummaryPage({ params }: { params: Promise<
       <section className="mt-5 card divide-y divide-[var(--line)]">
         {logs.map((log, index) => {
           const sets = log.strength_sets.filter((set) => set.completed);
-          return <div className="flex items-center justify-between gap-4 p-5" key={`${log.exercises?.name ?? "ejercicio"}-${index}`}><div><p className="font-medium">{log.exercises?.name ?? "Ejercicio"}</p><p className="mt-1 text-xs text-[var(--muted)]">{sets.map((set) => `${set.weight_kg ?? "—"} kg × ${set.reps ?? "—"}`).join(" · ") || "Sin series completadas"}</p></div>{log.feeling ? <span className="text-sm text-[var(--muted)]">{log.feeling}/10</span> : null}</div>;
+          return <div className="flex items-center justify-between gap-4 p-5" key={`${log.exercises?.name ?? "ejercicio"}-${index}`}><div><p className="font-medium">{log.exercises?.name ?? "Ejercicio"}</p><p className="mt-1 text-xs text-[var(--muted)]">{sets.map((set) => set.duration_seconds !== null ? `${set.duration_seconds} s` : `${set.weight_kg ?? "—"} kg × ${set.reps ?? "—"}`).join(" · ") || "Sin series completadas"}</p></div>{log.feeling ? <span className="text-sm text-[var(--muted)]">{log.feeling}/10</span> : null}</div>;
         })}
       </section>
 
