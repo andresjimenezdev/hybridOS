@@ -49,6 +49,8 @@ Abrir `http://localhost:3000`.
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | público | URL del proyecto Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | público | clave publicable, protegida por RLS |
+| `SUPABASE_URL` | servidor | fallback automático de la integración Vercel/Supabase |
+| `SUPABASE_PUBLISHABLE_KEY` | servidor | fallback automático de la integración Vercel/Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | servidor/script | solo migración legado; nunca frontend |
 | `HYBRIDOS_USER_ID` | servidor/script | propietario de la migración legado |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | servidor | cuenta de servicio de Sheets |

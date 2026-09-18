@@ -22,9 +22,23 @@ describe("getPublicEnvironment", () => {
   it("reports every missing required value", () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_PUBLISHABLE_KEY;
 
     expect(() => getPublicEnvironment()).toThrow(
       "Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
     );
+  });
+
+  it("accepts the server-side names provisioned by the Vercel integration", () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    process.env.SUPABASE_URL = "https://integration.supabase.co";
+    process.env.SUPABASE_PUBLISHABLE_KEY = "integration-publishable-key";
+
+    expect(getPublicEnvironment()).toEqual({
+      NEXT_PUBLIC_SUPABASE_URL: "https://integration.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "integration-publishable-key",
+    });
   });
 });
