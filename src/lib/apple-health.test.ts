@@ -12,6 +12,14 @@ describe("Apple Health payload", () => {
     expect(parseAppleHealthPayload({ date: "2026-09-19", steps: 0 }).steps).toBe(0);
   });
 
+  it("normalizes localized Shortcut measurements and calorie decimals", () => {
+    const result = parseAppleHealthPayload({
+      date: "2026-09-19", active_calories: "534,7 kcal", total_calories: "2.240,4 kcal",
+    });
+    expect(result.active_calories).toBe(535);
+    expect(result.total_calories).toBe(2240);
+  });
+
   it("uses a trusted server date when Shortcuts sends an unusable date", () => {
     expect(parseAppleHealthPayload({ date: "FechaISO", steps: 10 }, "2026-09-19").date).toBe("2026-09-19");
     expect(parseAppleHealthPayload({ steps: 10 }, "2026-09-19").date).toBe("2026-09-19");

@@ -24,6 +24,22 @@ const ranges = {
 type Metric = keyof typeof ranges;
 const integerMetrics = new Set<Metric>(["steps", "active_calories", "total_calories", "sleep_minutes", "resting_heart_rate"]);
 
+function shortcutNumber(raw: unknown) {
+  if (typeof raw === "number") return raw;
+  if (typeof raw !== "string") return Number.NaN;
+  const match = raw.trim().replace(/\s/g, "").match(/^-?[\d.,]+/);
+  if (!match) return Number.NaN;
+  let normalized = match[0];
+  if (normalized.includes(",") && normalized.includes(".")) {
+    normalized = normalized.lastIndexOf(",") > normalized.lastIndexOf(".")
+      ? normalized.replace(/\./g, "").replace(",", ".")
+      : normalized.replace(/,/g, "");
+  } else if (normalized.includes(",")) {
+    normalized = normalized.replace(",", ".");
+  }
+  return Number(normalized);
+}
+
 function validDate(value: unknown): value is string {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T12:00:00Z`);
@@ -39,8 +55,9 @@ export function parseAppleHealthPayload(input: unknown, fallbackDate?: string): 
   for (const [metric, [minimum, maximum]] of Object.entries(ranges) as Array<[Metric, readonly [number, number]]>) {
     const raw = record[metric];
     if (raw === undefined || raw === null || raw === "") continue;
-    const value = typeof raw === "number" ? raw : Number(raw);
-    if (!Number.isFinite(value) || value < minimum || value > maximum || (integerMetrics.has(metric) && !Number.isInteger(value))) {
+    const parsed = shortcutNumber(raw);
+    const value = integerMetrics.has(metric) ? Math.round(parsed) : parsed;
+    if (!Number.isFinite(value) || value < minimum || value > maximum) {
       throw new Error(`${metric} is outside its valid range`);
     }
     payload[metric] = value;
