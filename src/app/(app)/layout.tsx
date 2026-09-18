@@ -7,8 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function AuthenticatedLayout({ children }: Readonly<{ children: ReactNode }>) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims?.sub) redirect("/login");
 
   return (
     <div className="min-h-dvh pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-28">

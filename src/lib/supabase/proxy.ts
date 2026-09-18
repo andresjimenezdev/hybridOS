@@ -17,6 +17,8 @@ export async function updateSession(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  // getClaims verifies the JWT locally against cached JWKS on projects using
+  // asymmetric signing keys. getUser always adds an Auth network round-trip.
+  await supabase.auth.getClaims();
   return response;
 }
