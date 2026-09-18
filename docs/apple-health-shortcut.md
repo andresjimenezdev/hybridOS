@@ -39,7 +39,7 @@ Ejemplo de cuerpo:
 }
 ```
 
-Los campos salvo `date` son opcionales. Un campo ausente conserva el valor ya importado ese día. Repetir el envío no duplica datos.
+Todos los campos son opcionales salvo que debe existir al menos una métrica. Si `date` se omite o Atajos la serializa en otro formato, el servidor usa automáticamente la fecha actual de Madrid. Un campo ausente conserva el valor ya importado ese día. Repetir el envío no duplica datos.
 
 ## Crear el Atajo
 

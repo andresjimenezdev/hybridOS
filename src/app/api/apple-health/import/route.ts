@@ -4,6 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
+function todayInMadrid() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+}
+
 function authorized(request: Request) {
   const expected = process.env.APPLE_HEALTH_SYNC_SECRET;
   const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
@@ -23,7 +29,7 @@ export async function POST(request: Request) {
 
   let payload;
   try {
-    payload = parseAppleHealthPayload(await request.json());
+    payload = parseAppleHealthPayload(await request.json(), todayInMadrid());
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Invalid payload" }, { status: 400 });
   }

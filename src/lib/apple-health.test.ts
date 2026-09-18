@@ -12,6 +12,11 @@ describe("Apple Health payload", () => {
     expect(parseAppleHealthPayload({ date: "2026-09-19", steps: 0 }).steps).toBe(0);
   });
 
+  it("uses a trusted server date when Shortcuts sends an unusable date", () => {
+    expect(parseAppleHealthPayload({ date: "FechaISO", steps: 10 }, "2026-09-19").date).toBe("2026-09-19");
+    expect(parseAppleHealthPayload({ steps: 10 }, "2026-09-19").date).toBe("2026-09-19");
+  });
+
   it("rejects invalid dates, ranges and empty snapshots", () => {
     expect(() => parseAppleHealthPayload({ date: "19/09/2026", steps: 100 })).toThrow();
     expect(() => parseAppleHealthPayload({ date: "2026-09-19", steps: -1 })).toThrow();

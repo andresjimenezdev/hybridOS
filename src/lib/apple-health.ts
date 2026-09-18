@@ -30,11 +30,12 @@ function validDate(value: unknown): value is string {
   return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
 }
 
-export function parseAppleHealthPayload(input: unknown): AppleHealthPayload {
+export function parseAppleHealthPayload(input: unknown, fallbackDate?: string): AppleHealthPayload {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid JSON payload");
   const record = input as Record<string, unknown>;
-  if (!validDate(record.date)) throw new Error("date must use YYYY-MM-DD");
-  const payload: AppleHealthPayload = { date: record.date };
+  const date = validDate(record.date) ? record.date : fallbackDate;
+  if (!validDate(date)) throw new Error("date must use YYYY-MM-DD");
+  const payload: AppleHealthPayload = { date };
   for (const [metric, [minimum, maximum]] of Object.entries(ranges) as Array<[Metric, readonly [number, number]]>) {
     const raw = record[metric];
     if (raw === undefined || raw === null || raw === "") continue;
