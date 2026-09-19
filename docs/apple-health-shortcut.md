@@ -30,12 +30,15 @@ Ejemplo de cuerpo:
   "date": "2026-09-19",
   "steps": 8421,
   "active_calories": 534,
+  "resting_calories": 1706,
   "total_calories": 2240,
   "sleep_minutes": 438,
   "resting_heart_rate": 52,
   "vo2_max": 48.2,
   "weight_kg": 74.6,
-  "body_fat_percent": 16.8
+  "body_fat_percent": 16.8,
+  "bmi": 23.4,
+  "lean_body_mass_kg": 62.1
 }
 ```
 
@@ -46,14 +49,14 @@ Todos los campos son opcionales salvo que debe existir al menos una métrica. Si
 1. Crea un atajo llamado `Sincronizar HybridOS`.
 2. Obtén la fecha actual y formatéala como `yyyy-MM-dd`.
 3. Usa `Buscar muestras de salud` para cada métrica disponible.
-4. Para pasos, energía activa y energía basal del día, calcula la suma. `total_calories` es energía activa + energía basal.
-5. Para FC en reposo, VO₂max, peso y grasa corporal, ordena por fecha descendente, limita a una muestra y extrae su valor.
+4. Para pasos, energía activa y energía en reposo del día, calcula la suma. Envía esta última como `resting_calories`; si llegan ambas, HybridOS calcula `total_calories` automáticamente.
+5. Para FC en reposo, VO₂max, peso, grasa corporal, IMC y masa corporal sin grasa, ordena por fecha descendente, limita a una muestra y extrae su valor. Usa `bmi` y `lean_body_mass_kg` como claves.
 6. Para sueño, busca muestras cuyo final pertenezca al día actual, conserva las categorías de sueño real y suma su duración en minutos.
 7. Construye un diccionario con los nombres exactos del ejemplo. Omite cualquier clave que no tenga valor.
 8. Añade `Obtener contenido de URL`: método `POST`, cuerpo JSON con el diccionario y cabecera `Authorization` con `Bearer TU_APPLE_HEALTH_SYNC_SECRET`.
 9. Muestra una notificación solo si la respuesta no contiene `ok: true`.
 
-Si iPhone y Apple Watch aportan pasos simultáneamente, no sumes muestras de fuentes mezcladas sin revisar el resultado: puede duplicar actividad. Elige la fuente prioritaria que utilizas habitualmente y compara el primer día con la app Salud.
+Si iPhone y Apple Watch aportan pasos simultáneamente, no sumes muestras de fuentes mezcladas sin revisar el resultado: puede duplicar actividad. Filtra por tu fuente prioritaria y compara el primer día con la app Salud.
 
 ## Automatización
 

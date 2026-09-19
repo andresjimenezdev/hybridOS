@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
   const supabase = createAdminClient();
   const { data: existing, error: readError } = await supabase.from("health_metrics")
-    .select("weight_kg,body_fat_percent,resting_heart_rate,vo2_max,steps,active_calories,total_calories,sleep_minutes")
+    .select("weight_kg,body_fat_percent,bmi,lean_body_mass_kg,resting_heart_rate,vo2_max,steps,active_calories,resting_calories,total_calories,sleep_minutes")
     .eq("user_id", userId).eq("measured_on", payload.date).eq("source", "apple_health").maybeSingle();
   if (readError) {
     console.error("[apple-health/import] read failed", { message: readError.message });
@@ -48,6 +48,9 @@ export async function POST(request: Request) {
     ...(existing ?? {}), ...metrics, user_id: userId, measured_on: date, source: "apple_health",
     external_id: `apple_health:${date}`,
   };
+  if (values.active_calories !== null && values.active_calories !== undefined && values.resting_calories !== null && values.resting_calories !== undefined) {
+    values.total_calories = values.active_calories + values.resting_calories;
+  }
   if (values.active_calories !== null && values.active_calories !== undefined && values.total_calories !== null && values.total_calories !== undefined && values.total_calories < values.active_calories) {
     values.total_calories = null;
   }

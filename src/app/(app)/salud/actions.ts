@@ -30,7 +30,9 @@ export async function saveHealthMetrics(formData: FormData) {
   const measuredOn = text(formData, "measured_on", 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(measuredOn)) throw new Error("Fecha no válida.");
   const activeCalories = optionalNumber(formData, "active_calories", 0, 20000);
-  const totalCalories = optionalNumber(formData, "total_calories", 0, 30000);
+  const restingCalories = optionalNumber(formData, "resting_calories", 0, 10000);
+  const enteredTotalCalories = optionalNumber(formData, "total_calories", 0, 30000);
+  const totalCalories = enteredTotalCalories ?? (activeCalories !== null && restingCalories !== null ? activeCalories + restingCalories : null);
   if (activeCalories !== null && totalCalories !== null && totalCalories < activeCalories) throw new Error("Las calorías totales no pueden ser menores que las activas.");
   const sleepHours = optionalNumber(formData, "sleep_hours", 0, 24);
   const values = {
@@ -39,10 +41,13 @@ export async function saveHealthMetrics(formData: FormData) {
     source: "manual",
     weight_kg: optionalNumber(formData, "weight_kg", 20, 500),
     body_fat_percent: optionalNumber(formData, "body_fat_percent", 0, 100),
+    bmi: optionalNumber(formData, "bmi", 5, 100),
+    lean_body_mass_kg: optionalNumber(formData, "lean_body_mass_kg", 1, 500),
     resting_heart_rate: optionalNumber(formData, "resting_heart_rate", 20, 250),
     vo2_max: optionalNumber(formData, "vo2_max", 1, 100),
     steps: optionalNumber(formData, "steps", 0, 200000),
     active_calories: activeCalories,
+    resting_calories: restingCalories,
     total_calories: totalCalories,
     sleep_minutes: sleepHours === null ? null : Math.round(sleepHours * 60),
     notes: text(formData, "notes") || null,

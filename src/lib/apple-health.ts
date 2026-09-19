@@ -2,27 +2,33 @@ export type AppleHealthPayload = {
   date: string;
   steps?: number;
   active_calories?: number;
+  resting_calories?: number;
   total_calories?: number;
   sleep_minutes?: number;
   resting_heart_rate?: number;
   vo2_max?: number;
   weight_kg?: number;
   body_fat_percent?: number;
+  bmi?: number;
+  lean_body_mass_kg?: number;
 };
 
 const ranges = {
   steps: [0, 200_000],
   active_calories: [0, 50_000],
+  resting_calories: [0, 10_000],
   total_calories: [0, 100_000],
   sleep_minutes: [0, 1_440],
   resting_heart_rate: [20, 250],
   vo2_max: [1, 100],
   weight_kg: [20, 500],
   body_fat_percent: [0, 100],
+  bmi: [5, 100],
+  lean_body_mass_kg: [1, 500],
 } as const;
 
 type Metric = keyof typeof ranges;
-const integerMetrics = new Set<Metric>(["steps", "active_calories", "total_calories", "sleep_minutes", "resting_heart_rate"]);
+const integerMetrics = new Set<Metric>(["steps", "active_calories", "resting_calories", "total_calories", "sleep_minutes", "resting_heart_rate"]);
 
 function shortcutNumber(raw: unknown) {
   if (typeof raw === "number") return raw;

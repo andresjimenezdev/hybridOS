@@ -20,6 +20,12 @@ describe("Apple Health payload", () => {
     expect(result.total_calories).toBe(2240);
   });
 
+  it("accepts body composition and resting energy estimates", () => {
+    expect(parseAppleHealthPayload({
+      date: "2026-09-19", bmi: "23,4", lean_body_mass_kg: "61,25 kg", resting_calories: "1.684,2 kcal",
+    })).toEqual({ date: "2026-09-19", bmi: 23.4, lean_body_mass_kg: 61.25, resting_calories: 1684 });
+  });
+
   it("uses a trusted server date when Shortcuts sends an unusable date", () => {
     expect(parseAppleHealthPayload({ date: "FechaISO", steps: 10 }, "2026-09-19").date).toBe("2026-09-19");
     expect(parseAppleHealthPayload({ steps: 10 }, "2026-09-19").date).toBe("2026-09-19");

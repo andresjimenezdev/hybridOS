@@ -17,8 +17,8 @@ export function AppNavigation() {
   const [isPending, startTransition] = useTransition();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   return (
-    <nav aria-label="Navegación principal" className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 mx-auto max-w-md rounded-[1.75rem] bg-[#11110f] p-2 shadow-[0_18px_55px_rgba(0,0,0,0.28)] md:bottom-auto md:left-5 md:right-auto md:top-1/2 md:m-0 md:max-w-none md:-translate-y-1/2">
-      <div className="grid grid-cols-4 md:flex md:flex-col">
+    <nav aria-label="Navegación principal" className="fixed inset-x-0 bottom-0 z-50 bg-[#11110f] px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-12px_35px_rgba(0,0,0,0.18)] md:bottom-auto md:left-5 md:right-auto md:top-1/2 md:rounded-[1.75rem] md:p-2 md:-translate-y-1/2 md:shadow-[0_18px_55px_rgba(0,0,0,0.28)]">
+      <div className="mx-auto grid max-w-md grid-cols-4 md:flex md:max-w-none md:flex-col">
         {items.map((item) => {
           const selectedPath = isPending && pendingHref ? pendingHref : pathname;
           const active = selectedPath === item.href || selectedPath.startsWith(`${item.href}/`);

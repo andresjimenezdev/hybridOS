@@ -10,7 +10,7 @@ type StrengthSession = {
   strength_exercise_logs: Array<{ feeling: number | null; has_pain: boolean; notes: string | null; exercises: { name: string; external_key: string | null } | null; strength_sets: Array<{ id: string; set_number: number; weight_kg: number | null; reps: number | null; duration_seconds: number | null; rir: number | null; completed: boolean }> }>;
 };
 type Cardio = { id: string; kind: string; performed_at: string; duration_seconds: number; distance_km: number | null; average_pace_seconds: number | null; average_heart_rate: number | null; max_heart_rate: number | null; rpe: number | null; talk_test: string | null; feeling: number | null; notes: string | null; planned_sessions: { session_key: string | null; title: string } | null };
-type Health = { measured_on: string; weight_kg: number | null; body_fat_percent: number | null; resting_heart_rate: number | null; vo2_max: number | null; steps: number | null; active_calories: number | null; total_calories: number | null; sleep_minutes: number | null };
+type Health = { measured_on: string; weight_kg: number | null; body_fat_percent: number | null; bmi: number | null; lean_body_mass_kg: number | null; resting_heart_rate: number | null; vo2_max: number | null; steps: number | null; active_calories: number | null; resting_calories: number | null; total_calories: number | null; sleep_minutes: number | null };
 type Measurement = { measured_on: string; waist_cm: number | null; chest_cm: number | null; arm_cm: number | null; thigh_cm: number | null; hip_cm: number | null };
 type Planned = { scheduled_date: string; kind: string; status: string; strength_sessions: Array<{ status: string }>; cardio_sessions: Array<{ id: string }> };
 
@@ -26,7 +26,7 @@ export async function exportBridgeTables(supabase: BridgeSupabase, userId: strin
   const [strengthResult, cardioResult, healthResult, measurementResult, plannedResult] = await Promise.all([
     supabase.from("strength_sessions").select("id,name,started_at,completed_at,planned_sessions(session_key),strength_exercise_logs(feeling,has_pain,notes,exercises(name,external_key),strength_sets(id,set_number,weight_kg,reps,duration_seconds,rir,completed))").eq("user_id", userId).eq("status", "completed").order("started_at"),
     supabase.from("cardio_sessions").select("id,kind,performed_at,duration_seconds,distance_km,average_pace_seconds,average_heart_rate,max_heart_rate,rpe,talk_test,feeling,notes,planned_sessions(session_key,title)").eq("user_id", userId).order("performed_at"),
-    supabase.from("health_metrics").select("measured_on,weight_kg,body_fat_percent,resting_heart_rate,vo2_max,steps,active_calories,total_calories,sleep_minutes").eq("user_id", userId).order("measured_on"),
+    supabase.from("health_metrics").select("measured_on,weight_kg,body_fat_percent,bmi,lean_body_mass_kg,resting_heart_rate,vo2_max,steps,active_calories,resting_calories,total_calories,sleep_minutes").eq("user_id", userId).order("measured_on"),
     supabase.from("body_measurements").select("measured_on,waist_cm,chest_cm,arm_cm,thigh_cm,hip_cm").eq("user_id", userId).order("measured_on"),
     supabase.from("planned_sessions").select("scheduled_date,kind,status,strength_sessions(status),cardio_sessions(id)").eq("user_id", userId).order("scheduled_date"),
   ]);
@@ -70,7 +70,8 @@ export async function exportBridgeTables(supabase: BridgeSupabase, userId: strin
     const body = measurementsByDate.get(date);
     healthRows.push([
       date, value(metrics?.weight_kg), value(metrics?.body_fat_percent), value(metrics?.resting_heart_rate),
-      value(metrics?.vo2_max), value(metrics?.steps), value(metrics?.active_calories), value(metrics?.total_calories),
+      value(metrics?.vo2_max), value(metrics?.steps), value(metrics?.bmi), value(metrics?.lean_body_mass_kg),
+      value(metrics?.active_calories), value(metrics?.resting_calories), value(metrics?.total_calories),
       value(metrics?.sleep_minutes), value(body?.waist_cm), value(body?.chest_cm), value(body?.arm_cm),
       value(body?.thigh_cm), value(body?.hip_cm),
     ]);

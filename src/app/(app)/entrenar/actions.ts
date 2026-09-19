@@ -137,7 +137,8 @@ export async function finishStrengthSession(sessionId: string) {
   const { error } = await supabase.rpc("finish_strength_session", { session_id: sessionId });
   if (error) throw new Error("No se pudo terminar el entrenamiento.");
   revalidatePath("/hoy");
-  revalidatePath("/progreso");
+  revalidatePath("/progreso", "layout");
+  revalidatePath("/entrenar");
   after(async () => { await runOutboundSync(supabase, user.id, "strength_session", sessionId); });
   redirect(`/entrenar/fuerza/${sessionId}/resumen`);
 }

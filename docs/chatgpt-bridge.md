@@ -104,7 +104,7 @@ Read-only projection of health and body measurements, merged by date:
 
 ```text
 date, weight_kg, body_fat_estimate_pct, resting_hr, vo2max_estimate, steps,
-active_calories, total_calories, sleep_minutes, waist_cm, chest_cm, arm_cm,
+bmi, lean_body_mass_kg, active_calories, resting_calories, total_calories, sleep_minutes, waist_cm, chest_cm, arm_cm,
 thigh_cm, hips_cm
 ```
 
