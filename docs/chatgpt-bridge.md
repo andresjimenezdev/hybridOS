@@ -125,7 +125,8 @@ Cancelled and skipped sessions are excluded from adherence denominators. Complet
 ## Synchronization behaviour
 
 - AI_PLAN is checked on Today at most once every five minutes per browser session, and manually on request.
-- Results are exported after a completed training session or saved health/measurement entry.
+- Results are exported after a completed training session, a saved health/measurement entry or an Apple Health import.
+- Manual and Apple Health records from the same date are merged in `AI_HEALTH`; a missing value never erases a value provided by the other source.
 - Exports use low-volume batch replacement of only the three `AI_*` projections.
 - Google failure never rolls back Supabase. It creates a failed sync log and exposes a retry in Settings.
 - Google credentials are used server-side only.

@@ -1,5 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
+import { after } from "next/server";
 import { parseAppleHealthPayload } from "@/lib/apple-health";
+import { runOutboundSync } from "@/lib/google/export-bridge";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -64,6 +66,10 @@ export async function POST(request: Request) {
     user_id: userId, direction: "inbound", entity_type: "apple_health", entity_id: saved.id,
     status: "success", attempted_at: new Date().toISOString(), completed_at: new Date().toISOString(),
     last_synced_at: new Date().toISOString(), attempts: 1,
+  });
+  after(async () => {
+    const outcome = await runOutboundSync(supabase, userId, "health_metrics", saved.id);
+    if (!outcome.ok) console.error("[apple-health/import] Google Sheets sync failed", { message: outcome.error });
   });
   return Response.json({ ok: true, date, updated: Object.keys(metrics) });
 }

@@ -23,6 +23,22 @@ export function sheetValue<T extends string | number | boolean>(input: T | null 
   return input ?? "";
 }
 
+export function mergeDailySnapshots<T extends { measured_on: string }>(entries: T[]) {
+  const merged = new Map<string, T>();
+  for (const entry of entries) {
+    const previous = merged.get(entry.measured_on);
+    if (!previous) {
+      merged.set(entry.measured_on, entry);
+      continue;
+    }
+    const presentValues = Object.fromEntries(
+      Object.entries(entry).filter(([, value]) => value !== null && value !== undefined),
+    );
+    merged.set(entry.measured_on, { ...previous, ...presentValues });
+  }
+  return merged;
+}
+
 export async function nonBlockingSync<T>(task: () => Promise<T>) {
   try {
     return { ok: true as const, result: await task() };
