@@ -29,16 +29,23 @@ function targetSummary(session: PlannedSession) {
   return values.join(" · ") || (session.kind === "strength" ? "Sesión de fuerza" : "Objetivo libre");
 }
 
-export default async function TrainPage() {
+function weekLabel(start: string, end: string) {
+  const format = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
+  return `${format.format(new Date(`${start}T12:00:00Z`))} – ${format.format(new Date(`${end}T12:00:00Z`))}`.replaceAll(".", "");
+}
+
+export default async function TrainPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
   const supabase = await createClient();
   const today = dateInTimeZone(new Date());
-  const weekStart = isoWeekStart(today);
+  const currentWeek = isoWeekStart(today);
+  const { week: requestedWeek } = await searchParams;
+  const weekStart = /^\d{4}-\d{2}-\d{2}$/.test(requestedWeek ?? "") ? isoWeekStart(requestedWeek!) : currentWeek;
   const weekEnd = addDays(weekStart, 7);
   const [{ data: templatesData }, { data: exercisesData }, { data: active }, { data: completedData }, { data: plannedData }] = await Promise.all([
     supabase.from("workout_templates").select("id,name,estimated_duration_minutes,workout_template_exercises(id,position,target_sets,target_reps_min,target_reps_max,target_rir,exercises(name))").eq("is_active", true).order("created_at"),
     supabase.from("exercises").select("id,name").eq("is_active", true).order("name"),
     supabase.from("strength_sessions").select("id,name,planned_session_id").eq("status", "in_progress").maybeSingle(),
-    supabase.from("strength_sessions").select("id,name,planned_session_id,workout_template_id,completed_at").eq("status", "completed").order("completed_at", { ascending: false }).limit(30),
+    supabase.from("strength_sessions").select("id,name,planned_session_id,workout_template_id,completed_at").eq("status", "completed").gte("completed_at", `${weekStart}T00:00:00Z`).lt("completed_at", `${weekEnd}T00:00:00Z`).order("completed_at", { ascending: false }),
     supabase.from("planned_sessions").select("id,title,kind,scheduled_date,status,workout_template_id,target_duration_minutes,target_distance_km,target_pace_min_seconds,target_pace_max_seconds,target_rpe_min,target_rpe_max,target_talk_test,notes,planned_session_exercises(id,position,target_sets,target_reps_min,target_reps_max,exercises(name)),workout_templates(workout_template_exercises(id,position,target_sets,target_reps_min,target_reps_max,exercises(name)))")
       .gte("scheduled_date", weekStart).lt("scheduled_date", weekEnd).neq("kind", "rest").neq("status", "cancelled").order("scheduled_date").order("created_at"),
   ]);
@@ -58,11 +65,13 @@ export default async function TrainPage() {
   }
 
   return <main>
-    <SectionHeading eyebrow="Tu semana" title="Entrenar" action={<Link className="text-sm font-medium" href="/planificacion">Planificar</Link>} />
+    <SectionHeading eyebrow="Tu semana" title="Entrenar" action={<Link className="text-sm font-medium" href={`/planificacion?week=${weekStart}`}>Planificar</Link>} />
     {active && !active.planned_session_id ? <Link className="card mb-6 flex items-center justify-between p-5" href={`/entrenar/fuerza/${active.id}`}><div><p className="eyebrow text-[var(--success)]">Sesión activa</p><p className="mt-2 font-semibold">{active.name}</p></div><span>Continuar →</span></Link> : null}
 
+    <nav aria-label="Cambiar semana" className="card mb-6 flex items-center justify-between p-2"><Link aria-label="Semana anterior" className="grid h-11 w-11 place-items-center rounded-full text-xl" href={`/entrenar?week=${addDays(weekStart, -7)}`}>←</Link><div className="text-center"><p className="text-sm font-semibold capitalize">{weekLabel(weekStart, addDays(weekStart, 6))}</p>{weekStart === currentWeek ? <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-wider text-[var(--accent)]">Esta semana</p> : <Link className="mt-1 block text-[0.65rem] font-semibold text-[var(--muted)]" href={`/entrenar?week=${currentWeek}`}>Volver a esta semana</Link>}</div><Link aria-label="Semana siguiente" className="grid h-11 w-11 place-items-center rounded-full text-xl" href={`/entrenar?week=${addDays(weekStart, 7)}`}>→</Link></nav>
+
     <section>
-      <div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">Esta semana</p><p className="mt-1 text-sm text-[var(--muted)]">{plannedSessions.length} sesiones</p></div><Link className="text-sm text-[var(--muted)]" href={`/planificacion?week=${weekStart}`}>Editar</Link></div>
+      <div className="mb-4 flex items-end justify-between"><div><p className="eyebrow">Plan semanal</p><p className="mt-1 text-sm text-[var(--muted)]">{plannedSessions.length} sesiones</p></div><Link className="text-sm text-[var(--muted)]" href={`/planificacion?week=${weekStart}`}>Editar</Link></div>
       {plannedSessions.length ? <div className="space-y-3">{plannedSessions.map((session) => {
         const strengthResult = completedByPlan.get(session.id) ?? (session.status === "completed" ? completedThisWeek.get(session.workout_template_id ?? "") ?? completedThisWeek.get(normalizeExternalKey(session.title)) : undefined);
         const activeResult = active?.planned_session_id === session.id ? active : null;
