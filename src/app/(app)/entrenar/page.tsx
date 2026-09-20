@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { addTemplateExercise, createTemplate, planTemplateToday, removeTemplateExercise, startStrengthSession } from "./actions";
 import { SectionHeading } from "@/components/section-heading";
-import { dateInTimeZone } from "@/lib/date";
+import { addDays, dateInTimeZone, isoWeekStart } from "@/lib/date";
+import { normalizeExternalKey } from "@/lib/google/contracts";
 import { createClient } from "@/lib/supabase/server";
 
 type Exercise = { id: string; name: string };
 type TemplateExercise = { id: string; position: number; target_sets: number; target_reps_min: number; target_reps_max: number; target_rir: number | null; exercises: { name: string } | null };
 type Template = { id: string; name: string; estimated_duration_minutes: number | null; workout_template_exercises: TemplateExercise[] };
-type CompletedSession = { id: string; workout_template_id: string | null; completed_at: string | null };
+type CompletedSession = { id: string; name: string; workout_template_id: string | null; completed_at: string | null };
 
 export default async function TrainPage() {
   const supabase = await createClient();
@@ -15,16 +16,21 @@ export default async function TrainPage() {
     supabase.from("workout_templates").select("id,name,estimated_duration_minutes,workout_template_exercises(id,position,target_sets,target_reps_min,target_reps_max,target_rir,exercises(name))").eq("is_active", true).order("created_at"),
     supabase.from("exercises").select("id,name").eq("is_active", true).order("name"),
     supabase.from("strength_sessions").select("id,name").eq("status", "in_progress").maybeSingle(),
-    supabase.from("strength_sessions").select("id,workout_template_id,completed_at").eq("status", "completed").order("completed_at", { ascending: false }).limit(20),
+    supabase.from("strength_sessions").select("id,name,workout_template_id,completed_at").eq("status", "completed").order("completed_at", { ascending: false }).limit(20),
   ]);
   const templates = (templatesData ?? []) as unknown as Template[];
   const exercises = (exercisesData ?? []) as Exercise[];
   const today = dateInTimeZone(new Date());
-  const completedToday = new Map<string, CompletedSession>();
+  const weekStart = isoWeekStart(today);
+  const weekEnd = addDays(weekStart, 7);
+  const completedThisWeek = new Map<string, CompletedSession>();
   for (const session of (completedData ?? []) as CompletedSession[]) {
-    if (session.workout_template_id && session.completed_at && dateInTimeZone(new Date(session.completed_at)) === today && !completedToday.has(session.workout_template_id)) {
-      completedToday.set(session.workout_template_id, session);
-    }
+    if (!session.completed_at) continue;
+    const completedDate = dateInTimeZone(new Date(session.completed_at));
+    if (completedDate < weekStart || completedDate >= weekEnd) continue;
+    if (session.workout_template_id && !completedThisWeek.has(session.workout_template_id)) completedThisWeek.set(session.workout_template_id, session);
+    const nameKey = normalizeExternalKey(session.name);
+    if (!completedThisWeek.has(nameKey)) completedThisWeek.set(nameKey, session);
   }
 
   return (
@@ -35,7 +41,7 @@ export default async function TrainPage() {
       <section className="space-y-4">
         {templates.map((template) => {
           const items = [...template.workout_template_exercises].sort((a, b) => a.position - b.position);
-          const completed = completedToday.get(template.id);
+          const completed = completedThisWeek.get(template.id) ?? completedThisWeek.get(normalizeExternalKey(template.name));
           return <article className="card p-5" key={template.id}>
             <div className="flex items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">{template.name}</h2><p className="mt-1 text-sm text-[var(--muted)]">{items.length} ejercicios · ~{template.estimated_duration_minutes ?? 60} min</p></div>{completed ? <span className="rounded-full bg-[color:var(--success)]/10 px-3 py-1.5 text-[0.65rem] font-bold text-[var(--success)]">TERMINADO</span> : null}</div>
             {items.length ? <ol className="mt-5 space-y-2 border-t border-[var(--line)] pt-4">{items.map((item) => <li className="flex items-center justify-between gap-3 text-sm" key={item.id}><span>{item.position}. {item.exercises?.name}</span><div className="flex items-center gap-3"><span className="shrink-0 text-[var(--muted)]">{item.target_sets} × {item.target_reps_min}–{item.target_reps_max}</span><form action={removeTemplateExercise}><input name="id" type="hidden" value={item.id} /><button aria-label={`Quitar ${item.exercises?.name}`} className="min-h-8 min-w-8 text-[var(--muted)]" type="submit">×</button></form></div></li>)}</ol> : <p className="mt-4 text-sm text-[var(--warning)]">Añade ejercicios antes de iniciar.</p>}
