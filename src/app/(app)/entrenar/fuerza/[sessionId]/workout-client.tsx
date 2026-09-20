@@ -24,6 +24,7 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
   const [exercises, setExercises] = useState(initialExercises);
   const [activeIndex, setActiveIndex] = useState(() => Math.max(0, initialExercises.findIndex((item) => !item.completed)));
   const [saveState, setSaveState] = useState<"saved" | "saving" | "offline">("saved");
+  const [finishError, setFinishError] = useState<string | null>(null);
   const [restRemaining, setRestRemaining] = useState(0);
   const restIsActive = restRemaining > 0;
   const [finishing, startTransition] = useTransition();
@@ -127,10 +128,20 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
   }
 
   async function finish() {
+    setFinishError(null);
     updateExercise({ completed: true });
     const saved = await flush();
-    if (!saved) return;
-    startTransition(() => { void finishStrengthSession(sessionId); });
+    if (!saved) {
+      setFinishError("No se han podido guardar todos los cambios. Comprueba la conexión y vuelve a intentarlo.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await finishStrengthSession(sessionId);
+      } catch {
+        setFinishError("No se ha podido terminar el entrenamiento. Tus series siguen guardadas; vuelve a intentarlo.");
+      }
+    });
   }
 
   return (
@@ -164,6 +175,7 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
         </div>
         <div className="space-y-5 border-t border-[var(--line)] p-6"><label className="block text-sm font-medium">Sensaciones <span className="text-[var(--muted)]">1–10</span><input className="field mt-2" inputMode="numeric" max="10" min="1" onChange={(event) => updateExercise({ feeling: event.target.value === "" ? null : Number(event.target.value) })} type="number" value={current.feeling ?? ""} /></label><div><p className="text-sm font-medium">Molestia</p><div className="mt-2 grid grid-cols-2 gap-2"><button className={`secondary-button ${!current.has_pain ? "border-[var(--foreground)]" : ""}`} onClick={() => updateExercise({ has_pain: false })} type="button">No</button><button className={`secondary-button ${current.has_pain ? "border-[var(--danger)] text-[var(--danger)]" : ""}`} onClick={() => updateExercise({ has_pain: true })} type="button">Sí</button></div></div><label className="block text-sm font-medium">Notas<textarea className="field mt-2 min-h-24 resize-y" onChange={(event) => updateExercise({ notes: event.target.value })} value={current.notes ?? ""} /></label></div>
       </section>
+      {finishError ? <p className="mt-4 rounded-2xl bg-[color:var(--danger)]/10 p-4 text-sm text-[var(--danger)]" role="alert">{finishError}</p> : null}
       <div className="mt-5 flex gap-3">{activeIndex > 0 ? <button className="secondary-button flex-1" onClick={() => setActiveIndex(activeIndex - 1)} type="button">Anterior</button> : null}{activeIndex < exercises.length - 1 ? <button className="primary-button flex-1" onClick={goNext} type="button">Siguiente</button> : <button className="primary-button flex-1" disabled={finishing || saveState === "offline"} onClick={() => void finish()} type="button">{finishing ? "Terminando…" : "Terminar entrenamiento"}</button>}</div>
     </main>
   );

@@ -135,7 +135,10 @@ export async function startStrengthSession(formData: FormData) {
 export async function finishStrengthSession(sessionId: string) {
   const { supabase, user } = await authenticatedClient();
   const { error } = await supabase.rpc("finish_strength_session", { session_id: sessionId });
-  if (error) throw new Error("No se pudo terminar el entrenamiento.");
+  if (error) {
+    console.error("[strength/finish] RPC failed", { sessionId, userId: user.id, code: error.code, message: error.message });
+    throw new Error("No se pudo terminar el entrenamiento.");
+  }
   revalidatePath("/hoy");
   revalidatePath("/progreso", "layout");
   revalidatePath("/entrenar");
