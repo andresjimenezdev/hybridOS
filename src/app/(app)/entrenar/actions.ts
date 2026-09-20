@@ -143,5 +143,5 @@ export async function finishStrengthSession(sessionId: string) {
   revalidatePath("/progreso", "layout");
   revalidatePath("/entrenar");
   after(async () => { await runOutboundSync(supabase, user.id, "strength_session", sessionId); });
-  redirect(`/entrenar/fuerza/${sessionId}/resumen`);
+  return { completed: true as const };
 }
