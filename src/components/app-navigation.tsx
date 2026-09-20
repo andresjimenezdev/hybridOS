@@ -4,24 +4,33 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-const items = [
+const baseItems = [
   { href: "/hoy", label: "Hoy", icon: "M4 6.5h16M7 3v3.5M17 3v3.5M5 10h14v10H5z" },
   { href: "/entrenar", label: "Entrenar", icon: "M4 9v6M8 6v12M16 6v12M20 9v6M8 12h8" },
   { href: "/progreso", label: "Progreso", icon: "M4 19V9m6 10V5m6 14v-7m4 7H2" },
   { href: "/salud", label: "Salud", icon: "M12 20S4 15.5 4 9.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8 3.5C20 15.5 12 20 12 20Z" },
-] as const;
+];
 
-export function AppNavigation() {
+export function AppNavigation({ activeSession }: { activeSession: { id: string; name: string } | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const sessionHref = activeSession ? `/entrenar/fuerza/${activeSession.id}` : null;
+  const items = activeSession ? [
+    ...baseItems.slice(0, 2),
+    { href: sessionHref!, label: "Sesión", icon: "M8 3h8M9 3v3h6V3m-8 3h10v15H7zM10 11h4m-4 4h4" },
+    ...baseItems.slice(2),
+  ] : baseItems;
   return (
     <nav aria-label="Navegación principal" className="fixed inset-x-0 bottom-0 z-50 bg-[#11110f] px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-12px_35px_rgba(0,0,0,0.18)] md:bottom-auto md:left-5 md:right-auto md:top-1/2 md:rounded-[1.75rem] md:p-2 md:-translate-y-1/2 md:shadow-[0_18px_55px_rgba(0,0,0,0.28)]">
-      <div className="mx-auto grid max-w-md grid-cols-4 md:flex md:max-w-none md:flex-col">
+      <div className={`mx-auto grid max-w-md ${activeSession ? "grid-cols-5" : "grid-cols-4"} md:flex md:max-w-none md:flex-col`}>
         {items.map((item) => {
           const selectedPath = isPending && pendingHref ? pendingHref : pathname;
-          const active = selectedPath === item.href || selectedPath.startsWith(`${item.href}/`);
+          const matchesItem = selectedPath === item.href || selectedPath.startsWith(`${item.href}/`);
+          const active = item.href === "/entrenar" && sessionHref && selectedPath.startsWith(sessionHref)
+            ? false
+            : matchesItem;
           return (
             <Link aria-current={active ? "page" : undefined}
               className={`relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-[1.35rem] px-2 text-[0.65rem] font-semibold transition-all md:min-h-14 md:w-16 ${active ? "bg-[var(--accent)] text-white shadow-[0_8px_24px_rgba(255,103,18,0.42)]" : "text-white/45 hover:text-white/80"}`}

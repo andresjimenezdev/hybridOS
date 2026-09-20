@@ -9,6 +9,12 @@ export default async function AuthenticatedLayout({ children }: Readonly<{ child
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims?.sub) redirect("/login");
+  const { data: activeSession } = await supabase.from("strength_sessions")
+    .select("id,name")
+    .eq("status", "in_progress")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return (
     <div className="min-h-dvh pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-28">
@@ -19,7 +25,7 @@ export default async function AuthenticatedLayout({ children }: Readonly<{ child
         </header>
         {children}
       </div>
-      <AppNavigation />
+      <AppNavigation activeSession={activeSession} />
     </div>
   );
 }

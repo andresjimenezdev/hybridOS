@@ -129,7 +129,22 @@ export async function startStrengthSession(formData: FormData) {
   const plannedId = text(formData, "planned_id", 36) || null;
   const { data, error } = await supabase.rpc("start_strength_session", { template_id: templateId, planned_id: plannedId });
   if (error || !data) throw new Error("No se pudo iniciar el entrenamiento.");
+  revalidatePath("/", "layout");
   redirect(`/entrenar/fuerza/${data}`);
+}
+
+export async function cancelStrengthSession(sessionId: string) {
+  const { supabase, user } = await authenticatedClient();
+  const { error } = await supabase.rpc("cancel_strength_session", { target_session_id: sessionId });
+  if (error) {
+    console.error("[strength/cancel] RPC failed", { sessionId, userId: user.id, code: error.code, message: error.message });
+    throw new Error("No se pudo cancelar el entrenamiento.");
+  }
+  revalidatePath("/", "layout");
+  revalidatePath("/hoy");
+  revalidatePath("/entrenar");
+  revalidatePath("/planificacion");
+  return { cancelled: true as const };
 }
 
 export async function finishStrengthSession(sessionId: string) {
@@ -140,6 +155,7 @@ export async function finishStrengthSession(sessionId: string) {
     throw new Error("No se pudo terminar el entrenamiento.");
   }
   revalidatePath("/hoy");
+  revalidatePath("/", "layout");
   revalidatePath("/progreso", "layout");
   revalidatePath("/entrenar");
   after(async () => { await runOutboundSync(supabase, user.id, "strength_session", sessionId); });

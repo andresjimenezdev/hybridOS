@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { finishStrengthSession } from "@/app/(app)/entrenar/actions";
+import { cancelStrengthSession, finishStrengthSession } from "@/app/(app)/entrenar/actions";
 
 export type WorkoutSet = { id: string; set_number: number; weight_kg: number | null; reps: number | null; duration_seconds: number | null; rir: number | null; completed: boolean };
 export type PreviousPerformance = { date: string; weight: number | null; reps: number[] } | null;
@@ -32,9 +32,12 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
   const [saveState, setSaveState] = useState<"saved" | "saving" | "offline">("saved");
   const [finishError, setFinishError] = useState<string | null>(null);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [restRemaining, setRestRemaining] = useState(0);
   const restIsActive = restRemaining > 0;
   const [finishing, startTransition] = useTransition();
+  const [cancelling, startCancelling] = useTransition();
   const queue = useRef(new Map<string, SavePayload>());
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -157,9 +160,25 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
     });
   }
 
+  function cancel() {
+    setCancelError(null);
+    startCancelling(async () => {
+      try {
+        await cancelStrengthSession(sessionId);
+        localStorage.removeItem(storageKey);
+        router.replace("/hoy");
+        router.refresh();
+      } catch {
+        setCancelError("No se ha podido cancelar el entrenamiento. La sesión sigue intacta; vuelve a intentarlo.");
+        setShowCancelConfirm(false);
+      }
+    });
+  }
+
   return (
     <main className="mx-auto max-w-2xl">
       {showCompletion ? <div className="completion-overlay" role="status"><div className="completion-mark" aria-hidden="true">✓</div><p className="mt-6 text-2xl font-semibold">Entrenamiento completado</p><p className="mt-2 text-sm text-white/65">Guardando tu progreso…</p></div> : null}
+      {showCancelConfirm ? <div aria-labelledby="cancel-workout-title" aria-modal="true" className="fixed inset-0 z-[70] grid place-items-end bg-black/55 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:place-items-center" role="dialog"><div className="w-full max-w-md rounded-[2rem] bg-[var(--surface)] p-6 shadow-2xl"><p className="eyebrow">Sesión en curso</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]" id="cancel-workout-title">¿Cancelar entrenamiento?</h2><p className="mt-3 text-sm leading-6 text-[var(--muted)]">Se descartarán las series de esta sesión. Si formaba parte de tu planificación, volverá a aparecer como pendiente.</p><div className="mt-6 grid gap-2"><button autoFocus className="primary-button" disabled={cancelling} onClick={() => setShowCancelConfirm(false)} type="button">Seguir entrenando</button><button className="secondary-button border-[color:var(--danger)]/30 text-[var(--danger)]" disabled={cancelling} onClick={cancel} type="button">{cancelling ? "Cancelando…" : "Sí, cancelar sesión"}</button></div></div></div> : null}
       <div className="mb-6 flex items-center justify-between"><div><p className="eyebrow">{sessionName}</p><p className="mt-2 text-xs text-[var(--muted)]">Ejercicio {activeIndex + 1} de {exercises.length}</p></div><span className={`text-xs ${saveState === "offline" ? "text-[var(--warning)]" : "text-[var(--muted)]"}`}>{saveState === "saved" ? "Guardado" : saveState === "saving" ? "Guardando…" : "Sin conexión · guardado local"}</span></div>
       <div className="mb-8 h-1 overflow-hidden rounded-full bg-[var(--line)]"><div className="h-full rounded-full bg-[var(--foreground)] transition-all" style={{ width: `${progress}%` }} /></div>
       <section aria-label="Resumen del entrenamiento" className="card mb-5 p-4">
@@ -200,7 +219,9 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
         <div className="space-y-5 border-t border-[var(--line)] p-6"><label className="block text-sm font-medium">Sensaciones <span className="text-[var(--muted)]">1–10</span><input className="field mt-2" inputMode="numeric" max="10" min="1" onChange={(event) => updateExercise({ feeling: event.target.value === "" ? null : Number(event.target.value) })} type="number" value={current.feeling ?? ""} /></label><div><p className="text-sm font-medium">Molestia</p><div className="mt-2 grid grid-cols-2 gap-2"><button className={`secondary-button ${!current.has_pain ? "border-[var(--foreground)]" : ""}`} onClick={() => updateExercise({ has_pain: false })} type="button">No</button><button className={`secondary-button ${current.has_pain ? "border-[var(--danger)] text-[var(--danger)]" : ""}`} onClick={() => updateExercise({ has_pain: true })} type="button">Sí</button></div></div><label className="block text-sm font-medium">Notas<textarea className="field mt-2 min-h-24 resize-y" onChange={(event) => updateExercise({ notes: event.target.value })} value={current.notes ?? ""} /></label></div>
       </section>
       {finishError ? <p className="mt-4 rounded-2xl bg-[color:var(--danger)]/10 p-4 text-sm text-[var(--danger)]" role="alert">{finishError}</p> : null}
+      {cancelError ? <p className="mt-4 rounded-2xl bg-[color:var(--danger)]/10 p-4 text-sm text-[var(--danger)]" role="alert">{cancelError}</p> : null}
       <div className="mt-5 flex gap-3">{activeIndex > 0 ? <button className="secondary-button flex-1" onClick={() => setActiveIndex(activeIndex - 1)} type="button">Anterior</button> : null}{activeIndex < exercises.length - 1 ? <button className="primary-button flex-1" onClick={goNext} type="button">Siguiente</button> : <button className="primary-button flex-1" disabled={finishing || saveState === "offline"} onClick={() => void finish()} type="button">{finishing ? "Terminando…" : "Terminar entrenamiento"}</button>}</div>
+      <button className="mt-5 min-h-12 w-full rounded-2xl text-sm font-medium text-[var(--danger)] transition-colors hover:bg-[color:var(--danger)]/5" disabled={finishing || cancelling} onClick={() => setShowCancelConfirm(true)} type="button">Cancelar entrenamiento</button>
     </main>
   );
 }
