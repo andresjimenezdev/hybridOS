@@ -24,9 +24,14 @@ function exerciseIsDone(exercise: WorkoutExercise) {
   return exercise.completed || (exercise.sets.length > 0 && exercise.sets.every((set) => set.completed));
 }
 
+function currentTime() {
+  return Date.now();
+}
+
 export function WorkoutClient({ sessionId, sessionName, initialExercises }: { sessionId: string; sessionName: string; initialExercises: WorkoutExercise[] }) {
   const router = useRouter();
   const storageKey = `hybridos:strength:${sessionId}`;
+  const restStorageKey = `${storageKey}:rest-ends-at`;
   const [exercises, setExercises] = useState(initialExercises);
   const [activeIndex, setActiveIndex] = useState(() => Math.max(0, initialExercises.findIndex((item) => !item.completed)));
   const [saveState, setSaveState] = useState<"saved" | "saving" | "offline">("saved");
@@ -35,7 +40,7 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [restRemaining, setRestRemaining] = useState(0);
-  const restIsActive = restRemaining > 0;
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [finishing, startTransition] = useTransition();
   const [cancelling, startCancelling] = useTransition();
   const finishRequested = useRef(false);
@@ -99,12 +104,40 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
   }, [flush]);
 
   useEffect(() => {
-    if (!restIsActive) return;
-    const interval = window.setInterval(() => {
-      setRestRemaining((remaining) => Math.max(0, remaining - 1));
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [restIsActive]);
+    const storedEnd = Number(localStorage.getItem(restStorageKey));
+    if (!Number.isFinite(storedEnd) || storedEnd <= Date.now()) {
+      localStorage.removeItem(restStorageKey);
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      setRestEndsAt(storedEnd);
+      setRestRemaining(Math.max(0, Math.ceil((storedEnd - Date.now()) / 1000)));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [restStorageKey]);
+
+  useEffect(() => {
+    if (!restEndsAt) return;
+    const synchronizeRest = () => {
+      const remaining = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
+      setRestRemaining(remaining);
+      if (remaining === 0) {
+        setRestEndsAt(null);
+        localStorage.removeItem(restStorageKey);
+      }
+    };
+    synchronizeRest();
+    const interval = window.setInterval(synchronizeRest, 1000);
+    window.addEventListener("focus", synchronizeRest);
+    window.addEventListener("pageshow", synchronizeRest);
+    document.addEventListener("visibilitychange", synchronizeRest);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", synchronizeRest);
+      window.removeEventListener("pageshow", synchronizeRest);
+      document.removeEventListener("visibilitychange", synchronizeRest);
+    };
+  }, [restEndsAt, restStorageKey]);
 
   const current = exercises[activeIndex];
   const completedExerciseCount = useMemo(() => exercises.filter(exerciseIsDone).length, [exercises]);
@@ -125,7 +158,24 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
 
   function startRest(seconds = current.rest_seconds ?? 0) {
     if (seconds <= 0) return;
+    const endsAt = currentTime() + seconds * 1000;
+    setRestEndsAt(endsAt);
     setRestRemaining(seconds);
+    localStorage.setItem(restStorageKey, String(endsAt));
+  }
+
+  function addRestTime(seconds: number) {
+    const now = currentTime();
+    const endsAt = Math.max(restEndsAt ?? now, now) + seconds * 1000;
+    setRestEndsAt(endsAt);
+    setRestRemaining(Math.max(0, Math.ceil((endsAt - now) / 1000)));
+    localStorage.setItem(restStorageKey, String(endsAt));
+  }
+
+  function stopRest() {
+    setRestEndsAt(null);
+    setRestRemaining(0);
+    localStorage.removeItem(restStorageKey);
   }
 
   function updateExercise(changes: Partial<WorkoutExercise>) {
@@ -154,6 +204,7 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
       try {
         await finishStrengthSession(sessionId);
         localStorage.removeItem(storageKey);
+        localStorage.removeItem(restStorageKey);
         setShowCompletion(true);
         await new Promise((resolve) => window.setTimeout(resolve, 1600));
         router.replace("/hoy");
@@ -171,6 +222,7 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
       try {
         await cancelStrengthSession(sessionId);
         localStorage.removeItem(storageKey);
+        localStorage.removeItem(restStorageKey);
         router.replace("/hoy");
         router.refresh();
       } catch {
@@ -196,7 +248,7 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
           })}
         </ol>
       </section>
-      {restRemaining > 0 ? <aside aria-live="polite" className="card mb-5 flex items-center justify-between p-4"><div><p className="eyebrow">Descanso</p><p className="mt-1 text-2xl font-semibold tabular-nums">{Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, "0")}</p></div><div className="flex gap-2"><button className="secondary-button min-h-11 px-4" onClick={() => setRestRemaining((remaining) => remaining + 30)} type="button">+30 s</button><button className="min-h-11 px-3 text-sm text-[var(--muted)]" onClick={() => setRestRemaining(0)} type="button">Omitir</button></div></aside> : current.rest_seconds ? <button className="mb-5 min-h-11 text-sm font-medium text-[var(--muted)]" onClick={() => startRest()} type="button">Iniciar descanso · {current.rest_seconds} s</button> : null}
+      {restRemaining > 0 ? <aside aria-live="polite" className="card mb-5 flex items-center justify-between p-4"><div><p className="eyebrow">Descanso</p><p className="mt-1 text-2xl font-semibold tabular-nums">{Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, "0")}</p></div><div className="flex gap-2"><button className="secondary-button min-h-11 px-4" onClick={() => addRestTime(30)} type="button">+30 s</button><button className="min-h-11 px-3 text-sm text-[var(--muted)]" onClick={stopRest} type="button">Omitir</button></div></aside> : current.rest_seconds ? <button className="mb-5 min-h-11 text-sm font-medium text-[var(--muted)]" onClick={() => startRest()} type="button">Iniciar descanso · {current.rest_seconds} s</button> : null}
       <section className="card overflow-hidden">
         <div className="p-6 sm:p-8"><h1 className="text-3xl font-semibold tracking-[-0.045em]">{current.name}</h1><div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-2xl bg-black/[0.035] p-4 dark:bg-white/[0.05]"><p className="eyebrow">Hoy · objetivo</p><p className="mt-2 text-lg font-semibold">{current.target_sets} × {current.target_duration_min_seconds !== null ? `${current.target_duration_min_seconds}–${current.target_duration_max_seconds} s` : `${current.target_reps_min}–${current.target_reps_max}`}</p><p className="mt-1 text-sm text-[var(--muted)]">RIR {current.target_rir_min !== null ? `${current.target_rir_min}–${current.target_rir_max}` : current.target_rir ?? "—"}</p></div><div className="rounded-2xl border border-[var(--line)] bg-black/[0.035] p-4 dark:bg-white/[0.05]"><p className="eyebrow">Última vez</p>{current.previous ? <><p className="mt-2 text-lg font-semibold">{current.previous.weight ?? "—"} kg</p><p className="mt-1 text-sm font-medium text-[var(--muted)]">{current.previous.reps.join(" · ") || "Sin reps"}</p></> : <p className="mt-2 text-sm text-[var(--muted)]">Sin registro</p>}</div></div></div>
         <div className="border-t border-[var(--line)] px-3 py-4 sm:p-6">
