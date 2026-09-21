@@ -38,6 +38,7 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
   const restIsActive = restRemaining > 0;
   const [finishing, startTransition] = useTransition();
   const [cancelling, startCancelling] = useTransition();
+  const finishRequested = useRef(false);
   const queue = useRef(new Map<string, SavePayload>());
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -139,10 +140,13 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
   }
 
   async function finish() {
+    if (finishRequested.current) return;
+    finishRequested.current = true;
     setFinishError(null);
     updateExercise({ completed: true });
     const saved = await flush();
     if (!saved) {
+      finishRequested.current = false;
       setFinishError("No se han podido guardar todos los cambios. Comprueba la conexión y vuelve a intentarlo.");
       return;
     }
@@ -155,6 +159,7 @@ export function WorkoutClient({ sessionId, sessionName, initialExercises }: { se
         router.replace("/hoy");
         router.refresh();
       } catch {
+        finishRequested.current = false;
         setFinishError("No se ha podido terminar el entrenamiento. Tus series siguen guardadas; vuelve a intentarlo.");
       }
     });
