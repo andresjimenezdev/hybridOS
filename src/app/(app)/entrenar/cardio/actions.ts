@@ -58,7 +58,17 @@ export async function createCardioSession(formData: FormData) {
     notes: value(formData, "notes") || null,
     strava_url: stravaUrl || null,
   }).select("id").single();
-  if (error || !savedSession) throw new Error("No se pudo guardar la sesión de cardio.");
+  if (error || !savedSession) {
+    console.error("[cardio/create] insert failed", {
+      userId: user.id,
+      plannedId,
+      kind: rawKind,
+      code: error?.code,
+      message: error?.message,
+      constraint: error?.details,
+    });
+    throw new Error("No se pudo guardar la sesión de cardio.");
+  }
 
   if (plannedId) {
     await supabase.from("planned_sessions").update({ status: "completed", completed_at: new Date().toISOString() })
